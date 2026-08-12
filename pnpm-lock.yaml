@@ -160,6 +160,9 @@ importers:
       '@replit/connectors-sdk':
         specifier: ^0.4.1
         version: 0.4.1
+      next:
+        specifier: 16.0.1
+        version: 16.0.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       prettier:
         specifier: ^3.9.6
