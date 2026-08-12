@@ -58,13 +58,34 @@ router.post("/rooms/:roomCode/roster", async (req, res) => {
   return res.json({ ok: true, cards: 3 });
 });
 
+router.get("/rooms/:roomCode/cards/:playerId", async (req, res) => {
+  const [room] = await db.select().from(gameRooms).where(eq(gameRooms.code, req.params.roomCode.toUpperCase()));
+  if (!room) return res.status(404).json({ message: "الغرفة غير موجودة" });
+  const cards = await db.select({ id: gameCards.id, cardType: gameCards.cardType, usedAt: gameCards.usedAt }).from(gameCards).where(eq(gameCards.playerId, req.params.playerId));
+  return res.json({ cards });
+});
+
+router.post("/rooms/:roomCode/cards/:cardId/use", async (req, res) => {
+  const [card] = await db.select().from(gameCards).where(eq(gameCards.id, req.params.cardId));
+  if (!card || card.playerId !== String(req.body?.playerId ?? "")) return res.status(404).json({ message: "الكرت غير موجود" });
+  if (card.usedAt) return res.status(409).json({ message: "تم استخدام هذا الكرت من قبل" });
+  await db.update(gameCards).set({ usedAt: new Date() }).where(eq(gameCards.id, card.id));
+  return res.json({ ok: true, cardType: card.cardType });
+});
+
 router.post("/rooms/:roomCode/events", async (req, res) => {
   const [room] = await db.select().from(gameRooms).where(eq(gameRooms.code, req.params.roomCode.toUpperCase()));
   if (!room) return res.status(404).json({ message: "الغرفة غير موجودة" });
+  const actorId = String(req.body?.actorId ?? "");
   const eventType = String(req.body?.eventType ?? "question");
-  const [event] = await db.insert(gameEvents).values({ roomId: room.id, actorId: req.body?.actorId, targetId: req.body?.targetId, eventType, payload: req.body?.payload ?? {} }).returning();
-  await db.update(gameRooms).set({ phase: eventType === "assassinate" ? "question" : eventType, round: room.round + (eventType === "assassinate" ? 1 : 0) }).where(eq(gameRooms.id, room.id));
-  return res.status(201).json({ eventId: event.id });
+  const allowed = ["question", "reveal", "exclude", "assassinate"];
+  if (!allowed.includes(eventType)) return res.status(400).json({ message: "نوع العملية غير صالح" });
+  const [actor] = await db.select().from(gamePlayers).where(and(eq(gamePlayers.id, actorId), eq(gamePlayers.roomId, room.id)));
+  if (!actor) return res.status(403).json({ message: "لاعب غير مصرح له" });
+  if (room.status !== "playing") return res.status(409).json({ message: "اللعبة لم تبدأ بعد" });
+  const [event] = await db.insert(gameEvents).values({ roomId: room.id, actorId, targetId: req.body?.targetId, eventType, payload: req.body?.payload ?? {} }).returning();
+  await db.update(gameRooms).set({ phase: eventType === "assassinate" || eventType === "exclude" ? "question" : eventType, round: room.round + (eventType === "assassinate" || eventType === "exclude" ? 1 : 0), currentPlayerId: actorId }).where(eq(gameRooms.id, room.id));
+  return res.status(201).json({ eventId: event.id, phase: eventType });
 });
 
 export default router;
