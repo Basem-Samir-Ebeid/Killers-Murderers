@@ -4,10 +4,10 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-const databaseUrl = process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error("NEON_DATABASE_URL or DATABASE_URL must be set.");
+  throw new Error("DATABASE_URL must be set.");
 }
 
 export const pool = new Pool({
