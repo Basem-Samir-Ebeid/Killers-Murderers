@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, CircleHelp, Crosshair, Eye, FileWarning, Flag, RotateCcw, Shield, Skull, Target, UserRound, UsersRound } from 'lucide-react';
@@ -5,9 +7,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import NotFound from '@/pages/not-found';
+import NotFound from '@/legacy/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
-import referenceArtwork from '@assets/fd10b1bd-72e2-44f2-b5e9-1b6a71042db5_1786524671090.jpg';
+const referenceArtwork = '/game-artwork.jpg';
 
 type Screen = 'intro' | 'room' | 'teams' | 'game';
 type Phase = 'question' | 'target' | 'reveal' | 'ending';
@@ -45,7 +47,7 @@ function App() {
     const cleaned = draft.map((player, index) => ({ ...player, name: player.name.trim() || `لاعب كرة ${index + 1}` }));
     const teams = [...game.teams, { owner: game.owners[game.setupIndex], footballers: cleaned }];
     if (game.onlineRoomCode && game.onlinePlayerId) {
-      void fetch(`${import.meta.env.VITE_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/roster`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId: game.onlinePlayerId, roster: cleaned }) });
+      void fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/roster`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId: game.onlinePlayerId, roster: cleaned }) });
     }
     if (game.setupIndex === game.playerCount - 1) setGame({ ...game, screen: 'game', phase: 'question', teams, setupIndex: 0, round: 1, turn: 0, targetTeam: null, targetPlayer: null, winner: null, history: [] });
     else { update({ teams, setupIndex: game.setupIndex + 1 }); setDraft(emptyFootballers()); }
@@ -76,7 +78,7 @@ function RoomSetup({ game, setCount, update, onBack, onContinue }: { game: GameS
   const [onlinePlayers, setOnlinePlayers] = useState<{displayName:string;teamName:string;isReady:boolean}[]>([]);
   const [onlineMode, setOnlineMode] = useState<'idle'|'lobby'>('idle');
   const [onlineError, setOnlineError] = useState('');
-  const api = import.meta.env.VITE_API_URL ?? '/api';
+  const api = process.env.NEXT_PUBLIC_API_URL ?? '/api';
   const createRoom = async () => { setOnlineError(''); const response = await fetch(`${api}/rooms`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({displayName:name,teamName}) }); const data=await response.json(); if(!response.ok) return setOnlineError(data.message ?? '��عذر إنشاء الغرفة'); setRoomCode(data.roomCode); setPlayerId(data.playerId); update({ onlineRoomCode: data.roomCode, onlinePlayerId: data.playerId }); setOnlineMode('lobby'); };
   const joinRoom = async () => { setOnlineError(''); const response = await fetch(`${api}/rooms/${onlineCode.trim()}/join`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({displayName:name,teamName}) }); const data=await response.json(); if(!response.ok) return setOnlineError(data.message ?? 'تعذر الانضمام'); setRoomCode(data.roomCode); setPlayerId(data.playerId); update({ onlineRoomCode: data.roomCode, onlinePlayerId: data.playerId }); setOnlineMode('lobby'); };
   useEffect(() => { if(onlineMode !== 'lobby' || !roomCode) return; const load = async () => { const response=await fetch(`${api}/rooms/${roomCode}`); if(response.ok){ const data=await response.json(); setOnlinePlayers(data.players); } }; void load(); const timer=window.setInterval(load, 2500); return () => window.clearInterval(timer); }, [api, onlineMode, roomCode]);
@@ -94,12 +96,12 @@ function GameView({ game, setGame, onReset }: { game:GameState; setGame:(g:GameS
   const attacker = game.teams[game.turn];
   const currentQuestion = questions[(game.round-1)%questions.length];
   const [cards, setCards] = useState<{id:string;cardType:string;usedAt:string|null}[]>([]);
-  useEffect(() => { if (!game.onlineRoomCode || !game.onlinePlayerId) return; const loadCards = async () => { const response = await fetch(`${import.meta.env.VITE_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/cards/${game.onlinePlayerId}`); if (response.ok) setCards((await response.json()).cards); }; void loadCards(); }, [game.onlineRoomCode, game.onlinePlayerId]);
-  const useCard = async (id:string) => { if (!game.onlineRoomCode || !game.onlinePlayerId) return; await fetch(`${import.meta.env.VITE_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/cards/${id}/use`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({playerId:game.onlinePlayerId}) }); setCards(cards.map(card => card.id === id ? {...card, usedAt:new Date().toISOString()} : card)); };
+  useEffect(() => { if (!game.onlineRoomCode || !game.onlinePlayerId) return; const loadCards = async () => { const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/cards/${game.onlinePlayerId}`); if (response.ok) setCards((await response.json()).cards); }; void loadCards(); }, [game.onlineRoomCode, game.onlinePlayerId]);
+  const useCard = async (id:string) => { if (!game.onlineRoomCode || !game.onlinePlayerId) return; await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/cards/${id}/use`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({playerId:game.onlinePlayerId}) }); setCards(cards.map(card => card.id === id ? {...card, usedAt:new Date().toISOString()} : card)); };
   const validTeams = game.teams.map((t,i)=>({t,i})).filter(({t,i})=>i!==game.turn && t.footballers.some(p=>p.status==='active'));
   const selected = game.targetTeam!==null && game.targetPlayer!==null ? game.teams[game.targetTeam].footballers[game.targetPlayer] : null;
   const update = (c:Partial<GameState>) => setGame({...game,...c});
-  const syncEvent = (eventType: string, targetId?: string) => { if (!game.onlineRoomCode || !game.onlinePlayerId) return; void fetch(`${import.meta.env.VITE_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/events`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actorId: game.onlinePlayerId, targetId, eventType, payload: { round: game.round } }) }); };
+  const syncEvent = (eventType: string, targetId?: string) => { if (!game.onlineRoomCode || !game.onlinePlayerId) return; void fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/rooms/${game.onlineRoomCode}/events`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actorId: game.onlinePlayerId, targetId, eventType, payload: { round: game.round } }) }); };
   const reveal = () => { if (game.targetTeam===null || game.targetPlayer===null) return; const teams=game.teams.map((t,ti)=>ti===game.targetTeam?{...t,footballers:t.footballers.map((p,pi)=>pi===game.targetPlayer?{...p,revealed:true}:p)}:t); syncEvent('reveal', selected?.name); setGame({...game,teams,phase:'reveal'}); };
   const act = (action:'exclude'|'assassinate') => {
     if(game.targetTeam===null||game.targetPlayer===null||!selected) return;
@@ -129,5 +131,5 @@ function RulesModal({onClose}:{onClose:()=>void}) { return <motion.div className
 function Router(){return <RoutedErrorBoundary><Switch><Route path="/" component={Home}/><Route component={NotFound}/></Switch></RoutedErrorBoundary>}
 function Home(){return <App/>}
 function RoutedErrorBoundary({children}:{children:ReactNode}){const[location]=useLocation();return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>}
-function RootApp(){return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/,'')}><Router/></WouterRouter><Toaster/></TooltipProvider></QueryClientProvider>}
+function RootApp(){return <QueryClientProvider client={queryClient}><TooltipProvider><WouterRouter base={'/'}><Router/></WouterRouter><Toaster/></TooltipProvider></QueryClientProvider>}
 export default RootApp;
