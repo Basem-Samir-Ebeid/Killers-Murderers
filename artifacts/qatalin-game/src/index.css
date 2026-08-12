@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Noto+Kufi+Arabic:wght@600;700;800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -38,7 +38,7 @@
   --chart-4: 222 40% 50%;
   --chart-5: 35 60% 45%;
   --app-font-sans: 'Cairo', sans-serif;
-  --app-font-serif: 'Playfair Display', serif;
+  --app-font-serif: 'Noto Kufi Arabic', 'Cairo', sans-serif;
   --app-font-mono: 'Cairo', sans-serif;
   --radius: 1rem;
 }
