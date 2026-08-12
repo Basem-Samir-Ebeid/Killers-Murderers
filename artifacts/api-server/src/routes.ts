@@ -24,6 +24,9 @@ router.post("/rooms/:roomCode/join", async (req, res) => {
   const [room] = await db.select().from(gameRooms).where(eq(gameRooms.code, req.params.roomCode.toUpperCase()));
   if (!room) return res.status(404).json({ message: "الغرفة غير موجودة" });
   if (!displayName || !teamName) return res.status(400).json({ message: "اسم اللاعب والفريق مطلوبان" });
+  const existingPlayers = await db.select({ id: gamePlayers.id }).from(gamePlayers).where(eq(gamePlayers.roomId, room.id));
+  if (existingPlayers.length >= 15) return res.status(409).json({ message: "الغرفة مكتملة — الحد الأقصى 15 لاعباً" });
+  if (room.status !== "lobby") return res.status(409).json({ message: "بدأت اللعبة بالفعل ولا يمكن الانضمام الآن" });
   const [player] = await db.insert(gamePlayers).values({ roomId: room.id, displayName, teamName }).returning();
   return res.status(201).json({ roomCode: room.code, playerId: player.id });
 });
@@ -41,7 +44,7 @@ router.post("/rooms/:roomCode/ready", async (req, res) => {
   if (!room) return res.status(404).json({ message: "الغرفة غير موجودة" });
   await db.update(gamePlayers).set({ isReady: true }).where(and(eq(gamePlayers.id, playerId), eq(gamePlayers.roomId, room.id)));
   const players = await db.select().from(gamePlayers).where(eq(gamePlayers.roomId, room.id));
-  if (players.length >= 2 && players.length <= 10 && players.every((p) => p.isReady)) await db.update(gameRooms).set({ status: "playing", phase: "question", round: 1, currentPlayerId: players[0].id }).where(eq(gameRooms.id, room.id));
+  if (players.length >= 2 && players.length <= 15 && players.every((p) => p.isReady)) await db.update(gameRooms).set({ status: "playing", phase: "question", round: 1, currentPlayerId: players[0].id }).where(eq(gameRooms.id, room.id));
   return res.json({ ok: true });
 });
 
