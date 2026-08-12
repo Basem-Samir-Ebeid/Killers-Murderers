@@ -75,6 +75,9 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "next": "16.2.11"
+    "@workspace/db": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "next": "16.2.11",
+    "pg": "^8.22.0"
   }
 }

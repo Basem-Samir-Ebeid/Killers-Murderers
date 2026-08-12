@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { db } from '../../../../../../lib/db/src/index'
-import { gamePlayers, gameRooms } from '../../../../../../lib/db/src/schema/index'
+import { db, gamePlayers, gameRooms } from '@workspace/db'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ roomCode: room.code, playerId: player.id }, { status: 201 })
   } catch (error) {
-    console.error('[rooms] create failed', error)
-    return NextResponse.json({ message: 'تعذر إنشاء الغرفة. تأكد من اتصال قاعدة البيانات.' }, { status: 500 })
+    console.error('[v0] [rooms] create failed', error)
+    return NextResponse.json({ message: 'تعذر إنشاء الغرفة. تأكد من اتصال قاعدة البيانات.', debug: error instanceof Error ? error.message : String(error) }, { status: 500 })
   }
 }

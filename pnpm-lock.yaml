@@ -408,9 +408,18 @@ importers:
 
   artifacts/qatalin-game:
     dependencies:
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../../lib/db
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.22.0)
       next:
         specifier: 16.2.11
         version: 16.2.11(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
